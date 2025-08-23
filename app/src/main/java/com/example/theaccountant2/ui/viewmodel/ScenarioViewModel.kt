@@ -6,9 +6,12 @@ import com.example.theaccountant2.data.model.Scenario
 import com.example.theaccountant2.data.model.ScenarioQuestion
 import com.example.theaccountant2.data.repository.AppProgressRepository
 import com.example.theaccountant2.data.repository.ScenarioRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -34,9 +37,19 @@ class ScenarioViewModel(
     private val _displayMode = MutableStateFlow(ScenarioDisplayMode.NARRATIVE)
     val displayMode: StateFlow<ScenarioDisplayMode> = _displayMode.asStateFlow()
 
-    // Answer selection state
     private val _selectedAnswerIndex = MutableStateFlow<Int?>(null)
     val selectedAnswerIndex: StateFlow<Int?> = _selectedAnswerIndex.asStateFlow()
+
+    // Navigation events
+    private val _navigateToJournalEntry = MutableSharedFlow<Unit>()
+    val navigateToJournalEntry: SharedFlow<Unit> = _navigateToJournalEntry.asSharedFlow()
+
+    private val _navigateToIncomeStatement = MutableSharedFlow<Unit>()
+    val navigateToIncomeStatement: SharedFlow<Unit> = _navigateToIncomeStatement.asSharedFlow()
+
+    private val _navigateToBalanceSheet = MutableSharedFlow<Unit>()
+    val navigateToBalanceSheet: SharedFlow<Unit> = _navigateToBalanceSheet.asSharedFlow()
+
 
     val currentDisplayedQuestion: StateFlow<ScenarioQuestion?> = combine(
         _currentScenario,
@@ -62,7 +75,7 @@ class ScenarioViewModel(
 
     val currentAnswerExplanation: StateFlow<String?> = combine(
         currentDisplayedQuestion,
-        isAnswerSelected // Use isAnswerSelected to trigger explanation display
+        isAnswerSelected // Only show explanation if an answer is selected
     ) { question, answerSelected ->
         if (question != null && answerSelected) {
             question.explanation
@@ -79,7 +92,7 @@ class ScenarioViewModel(
                     day?.let {
                         _currentScenario.value = scenarioRepository.getScenarioForDay(it)
                         _currentQuestionIndex.value = 0
-                        _selectedAnswerIndex.value = null // Reset selection for new scenario
+                        _selectedAnswerIndex.value = null
                         _displayMode.value = ScenarioDisplayMode.NARRATIVE
                     } ?: run {
                         _currentScenario.value = null
@@ -89,38 +102,65 @@ class ScenarioViewModel(
     }
 
     fun selectAnswer(index: Int) {
-        // Only allow selection if not already selected, or allow re-selection
-        // For now, allow re-selection. Or prevent if already correct?
-        _selectedAnswerIndex.value = index
+        // Only allow selecting an answer if one hasn't been selected yet for the current question attempt
+        if (_selectedAnswerIndex.value == null) {
+            _selectedAnswerIndex.value = index
+        }
     }
 
     fun handleNextAction() {
         when (_displayMode.value) {
             ScenarioDisplayMode.NARRATIVE -> {
                 if (_currentScenario.value?.questions?.isNotEmpty() == true) {
-                    _selectedAnswerIndex.value = null // Ensure no selection when moving to first question
+                    _selectedAnswerIndex.value = null // Ensure fresh state for question
                     _displayMode.value = ScenarioDisplayMode.QUESTION
                 } else {
                     proceedToJournalEntry()
                 }
             }
             ScenarioDisplayMode.QUESTION -> {
-                // Logic to advance only if answer is correct can be added here if desired
-                // For now, we advance regardless, and feedback is shown.
-                val questions = _currentScenario.value?.questions
-                if (questions != null && _currentQuestionIndex.value < questions.size - 1) {
-                    _currentQuestionIndex.value++
-                    _selectedAnswerIndex.value = null // Reset selection for next question
+                // This action is now only for advancing if the answer was correct,
+                // or if it's the last question (leading to journal entry).
+                // The "Try Again" case will be handled by a different button action in the UI.
+                if (isCurrentAnswerCorrect.value == true) {
+                    val questions = _currentScenario.value?.questions
+                    if (questions != null && _currentQuestionIndex.value < questions.size - 1) {
+                        _currentQuestionIndex.value++
+                        _selectedAnswerIndex.value = null // Reset for the next question
+                    } else {
+                        proceedToJournalEntry()
+                    }
+                } else if (isCurrentAnswerCorrect.value == false) {
+                    // This case should ideally be handled by the UI calling retryCurrentQuestion()
+                    // If somehow handleNextAction is called with a wrong answer,
+                    // we might choose to do nothing or log an unexpected state.
+                    // For now, let's assume UI directs to retryCurrentQuestion().
                 } else {
-                    proceedToJournalEntry()
+                    // No answer selected yet, do nothing (button should be disabled or have different text)
                 }
             }
         }
     }
 
+    fun retryCurrentQuestion() {
+        _selectedAnswerIndex.value = null
+    }
+
     private fun proceedToJournalEntry() {
-        println("Proceeding to journal entry screen (placeholder)")
-        // Future: Reset display mode, advance day via appProgressRepository.updateCurrentDay(currentDay + 1)
-        // _displayMode.value = ScenarioDisplayMode.NARRATIVE // Or navigate away
+        viewModelScope.launch {
+            _navigateToJournalEntry.emit(Unit)
+        }
+    }
+
+    fun onNavigateToIncomeStatementClicked() {
+        viewModelScope.launch {
+            _navigateToIncomeStatement.emit(Unit)
+        }
+    }
+
+    fun onNavigateToBalanceSheetClicked() {
+        viewModelScope.launch {
+            _navigateToBalanceSheet.emit(Unit)
+        }
     }
 }

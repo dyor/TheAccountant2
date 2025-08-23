@@ -6,6 +6,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,10 +32,9 @@ fun ScenarioScreen(
     val currentQuestion by scenarioViewModel.currentDisplayedQuestion.collectAsState()
     val currentQuestionIndex by scenarioViewModel.currentQuestionIndex.collectAsState()
 
-    // Collect states for answer feedback
     val selectedAnswerIndex by scenarioViewModel.selectedAnswerIndex.collectAsState()
     val isAnswerSelected by scenarioViewModel.isAnswerSelected.collectAsState()
-    val isCurrentAnswerCorrect by scenarioViewModel.isCurrentAnswerCorrect.collectAsState()
+    val isCurrentAnswerCorrect by scenarioViewModel.isCurrentAnswerCorrect.collectAsState() // This is already the Boolean?
     val currentAnswerExplanation by scenarioViewModel.currentAnswerExplanation.collectAsState()
 
     Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
@@ -72,23 +72,71 @@ fun ScenarioScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f)) // Pushes button to bottom
-                Button(
-                    onClick = { scenarioViewModel.handleNextAction() },
-                    modifier = Modifier.fillMaxWidth(),
-                    // Enable button in question mode only if an answer is selected
-                    enabled = (displayMode == ScenarioDisplayMode.NARRATIVE || isAnswerSelected)
+                Spacer(modifier = Modifier.weight(1f)) // Pushes buttons to bottom
+
+                // Temporary navigation buttons for testing
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val buttonText = when (displayMode) {
-                        ScenarioDisplayMode.NARRATIVE -> "Let's Analyze This >"
-                        ScenarioDisplayMode.QUESTION -> {
-                            if (currentQuestionIndex < currentScenario.questions.size - 1) {
-                                "Next Question >"
-                            } else {
-                                "Great! Now, let's make the journal entry >"
-                            }
+                    OutlinedButton(
+                        onClick = { scenarioViewModel.onNavigateToIncomeStatementClicked() },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("View Income St.")
+                    }
+                    OutlinedButton(
+                        onClick = { scenarioViewModel.onNavigateToBalanceSheetClicked() },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("View Balance Sh.")
+                    }
+                }
+                // End of temporary buttons
+
+                // Determine onClick action and button text based on current state
+                val isIncorrectAnswer = displayMode == ScenarioDisplayMode.QUESTION &&
+                                        isAnswerSelected &&
+                                        isCurrentAnswerCorrect == false // Corrected: No .value here
+
+                val onClickAction = if (isIncorrectAnswer) {
+                    { scenarioViewModel.retryCurrentQuestion() }
+                } else {
+                    { scenarioViewModel.handleNextAction() }
+                }
+
+                val buttonText = when {
+                    isIncorrectAnswer -> "Try Again"
+                    displayMode == ScenarioDisplayMode.NARRATIVE -> "Let's Analyze This >"
+                    displayMode == ScenarioDisplayMode.QUESTION -> {
+                        // This branch is now for when the answer is correct or not yet selected
+                        if (isCurrentAnswerCorrect == true) { // Check for explicit true to proceed
+                           if (currentQuestionIndex < currentScenario.questions.size - 1) {
+                               "Next Question >"
+                           } else {
+                               "Great! Now, let's make the journal entry >"
+                           }
+                        } else if (isCurrentAnswerCorrect == null && !isAnswerSelected){ // Not yet answered
+                             "Select an Answer" // Or any placeholder text
+                        }
+                         else { // Answered but not correct (handled by isIncorrectAnswer) or other states
+                            // Fallback, though isIncorrectAnswer should catch the main case.
+                            // If an answer is selected but not incorrect (i.e. correct), this branch is hit.
+                             if (currentQuestionIndex < currentScenario.questions.size - 1) {
+                               "Next Question >"
+                           } else {
+                               "Great! Now, let's make the journal entry >"
+                           }
                         }
                     }
+                    else -> "Proceed" // Should not happen
+                }
+
+                Button(
+                    onClick = onClickAction,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = (displayMode == ScenarioDisplayMode.NARRATIVE || isAnswerSelected || isIncorrectAnswer) // Enable for "Try Again"
+                ) {
                     Text(buttonText)
                 }
             }
@@ -138,7 +186,7 @@ fun QuestionView(
     totalQuestions: Int,
     selectedAnswerIndex: Int?,
     isAnswerSelected: Boolean,
-    isCorrect: Boolean?,
+    isCorrect: Boolean?, // This is the collected state value
     explanation: String?,
     onAnswerSelected: (Int) -> Unit
 ) {
@@ -158,9 +206,9 @@ fun QuestionView(
         question.choices.forEachIndexed { index, choice ->
             val isSelected = selectedAnswerIndex == index
             val buttonColors = when {
-                isSelected && isCorrect == true -> ButtonDefaults.buttonColors(containerColor = Color(0xFFC8E6C9)) // Light Green
-                isSelected && isCorrect == false -> ButtonDefaults.buttonColors(containerColor = Color(0xFFFFCDD2)) // Light Red
-                else -> ButtonDefaults.outlinedButtonColors() // Default outlined or filled
+                isSelected && isCorrect == true -> ButtonDefaults.buttonColors(containerColor = Color(0xFFC8E6C9))
+                isSelected && isCorrect == false -> ButtonDefaults.buttonColors(containerColor = Color(0xFFFFCDD2))
+                else -> ButtonDefaults.outlinedButtonColors()
             }
             val textColor = if (isSelected && isCorrect != null) Color.Black else MaterialTheme.colorScheme.onSurface
 
@@ -169,7 +217,7 @@ fun QuestionView(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 colors = buttonColors,
                 border = if (!isSelected || isCorrect == null) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null,
-                enabled = !isAnswerSelected // Disable all buttons once an answer is selected
+                enabled = !isAnswerSelected
             ) {
                 Text(text = choice, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth(), color = textColor)
             }
@@ -177,7 +225,7 @@ fun QuestionView(
 
         if (isAnswerSelected && explanation != null) {
             Spacer(modifier = Modifier.height(16.dp))
-            val feedbackColor = if (isCorrect == true) Color(0xFF2E7D32) else Color(0xFFC62828) // Darker Green or Red
+            val feedbackColor = if (isCorrect == true) Color(0xFF2E7D32) else Color(0xFFC62828)
             val feedbackPrefix = if (isCorrect == true) "Correct!" else "Incorrect."
             Text(
                 text = "$feedbackPrefix $explanation",

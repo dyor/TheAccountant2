@@ -29,7 +29,7 @@ import androidx.room.PrimaryKey
 data class Transaction(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val entryId: Int, // Foreign Key to JournalEntry
+    val entryId: Long, // Foreign Key to JournalEntry
     val accountId: Int, // Foreign Key to Account
     val amount: Long, // Stored in cents
     val isDebit: Boolean
