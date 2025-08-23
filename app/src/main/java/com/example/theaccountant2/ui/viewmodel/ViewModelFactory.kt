@@ -35,8 +35,11 @@ class ViewModelFactory(
                     appProgressRepository
                 ) as T
             }
-            modelClass.isAssignableFrom(FinancialStatementViewModel::class.java) -> { // Added this case
-                FinancialStatementViewModel(accountDao) as T
+            modelClass.isAssignableFrom(FinancialStatementViewModel::class.java) -> {
+                FinancialStatementViewModel(
+                    accountDao,
+                    transactionDao   // journalEntryDao removed
+                ) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class: " + modelClass.name)
         }

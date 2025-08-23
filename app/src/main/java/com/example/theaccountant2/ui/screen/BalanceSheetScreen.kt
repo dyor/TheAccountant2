@@ -12,12 +12,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+// import androidx.compose.ui.graphics.Color // Not used, can be removed
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.theaccountant2.data.model.Account
-import com.example.theaccountant2.ui.viewmodel.BalanceSheetData
+import com.example.theaccountant2.data.model.BalanceSheetData
 import com.example.theaccountant2.ui.viewmodel.FinancialStatementViewModel
+import com.example.theaccountant2.util.formatCurrency
+import com.example.theaccountant2.ui.common.AccountRow // Added import for shared AccountRow
+
 
 @Composable
 fun BalanceSheetScreen(
@@ -117,9 +120,6 @@ fun EquitySectionCard(balanceSheetData: BalanceSheetData) {
             balanceSheetData.equityDetail.beginningCapitalAccounts.forEach { account ->
                 AccountRow(accountName = account.accountName, balance = account.balance)
             }
-            // Display Total Beginning Capital if needed, or just individual accounts
-            // AccountRow(accountName = "Total Beginning Capital", balance = balanceSheetData.equityDetail.totalBeginningCapital)
-
             AccountRow(accountName = "Net Income", balance = balanceSheetData.equityDetail.netIncome)
 
             if (balanceSheetData.equityDetail.drawingAccounts.isNotEmpty()) {
@@ -141,3 +141,26 @@ fun EquitySectionCard(balanceSheetData: BalanceSheetData) {
         }
     }
 }
+
+// Removed local private fun formatCurrency(value: Long) - This was already done
+// StatementSection is still local to this file. It might be a candidate for sharing if used elsewhere.
+@Composable
+private fun StatementSection(title: String, accounts: List<Account>, totalAmount: Long) {
+    Column(Modifier.padding(vertical = 8.dp)) {
+        Text(text = title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+        accounts.forEach { account ->
+            AccountRow(accountName = account.accountName, balance = account.balance) // This will now use the imported AccountRow
+        }
+        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(text = "Total $title", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(text = formatCurrency(totalAmount), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+// AccountRow composable removed from here, will use the one from ui.common

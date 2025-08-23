@@ -18,15 +18,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.theaccountant2.data.model.Account
 import com.example.theaccountant2.ui.viewmodel.FinancialStatementViewModel
-import com.example.theaccountant2.ui.viewmodel.IncomeStatementData
-import java.text.NumberFormat
-import java.util.Locale
+//import com.example.theaccountant2.ui.viewmodel.IncomeStatementData
+// Removed java.text.NumberFormat and java.util.Locale as they are now in the utility function
+import com.example.theaccountant2.util.formatCurrency // Added import for shared utility
+import com.example.theaccountant2.ui.common.AccountRow // Added import for shared AccountRow
 
-// Helper function to format Long (cents) to currency string
-fun formatCurrency(cents: Long): String {
-    val amount = cents / 100.0
-    return NumberFormat.getCurrencyInstance(Locale.getDefault()).format(amount)
-}
 
 @Composable
 fun IncomeStatementScreen(
@@ -155,19 +151,4 @@ fun NetIncomeSection(netIncome: Long, totalRevenue: Long, totalExpenses: Long) {
     }
 }
 
-
-@Composable
-fun AccountRow(accountName: String, balance: Long, isSubtraction: Boolean = false) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(accountName, style = MaterialTheme.typography.bodyMedium)
-        Text(
-            if(isSubtraction) "(${formatCurrency(balance)})" else formatCurrency(balance),
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
+// AccountRow composable removed from here, will use the one from ui.common

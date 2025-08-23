@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.stateIn // Make sure this is imported
 import kotlinx.coroutines.launch
 
 enum class ScenarioDisplayMode {
@@ -27,6 +27,20 @@ class ScenarioViewModel(
     private val appProgressRepository: AppProgressRepository,
     private val scenarioRepository: ScenarioRepository
 ) : ViewModel() {
+
+    // --- Start of new/modified code ---
+    /**
+     * Represents the current day of the year in the simulation.
+     * Defaults to 0 if not yet determined or before the simulation starts for the day.
+     */
+    val currentDayInYear: StateFlow<Int> = appProgressRepository.currentDay
+        .map { day -> day ?: 0 } // Map null from repository to 0
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0 // Initial value for the StateFlow
+        )
+    // --- End of new/modified code ---
 
     private val _currentScenario = MutableStateFlow<Scenario?>(null)
     val currentScenario: StateFlow<Scenario?> = _currentScenario.asStateFlow()
@@ -41,8 +55,8 @@ class ScenarioViewModel(
     val selectedAnswerIndex: StateFlow<Int?> = _selectedAnswerIndex.asStateFlow()
 
     // Navigation events
-    private val _navigateToJournalEntry = MutableSharedFlow<Unit>()
-    val navigateToJournalEntry: SharedFlow<Unit> = _navigateToJournalEntry.asSharedFlow()
+    private val _navigateToJournalEntry = MutableSharedFlow<String>() // Changed from Unit to String
+    val navigateToJournalEntry: SharedFlow<String> = _navigateToJournalEntry.asSharedFlow() // Changed from Unit to String
 
     private val _navigateToIncomeStatement = MutableSharedFlow<Unit>()
     val navigateToIncomeStatement: SharedFlow<Unit> = _navigateToIncomeStatement.asSharedFlow()
@@ -87,10 +101,13 @@ class ScenarioViewModel(
     init {
         viewModelScope.launch {
             appProgressRepository.ensureInitialProgress()
+            // The existing collection of appProgressRepository.currentDay can still
+            // be used for its original purpose of loading scenarios.
             appProgressRepository.currentDay
-                .collect { day ->
-                    day?.let {
-                        _currentScenario.value = scenarioRepository.getScenarioForDay(it)
+                .collect { day -> // This 'day' is from the repository (Flow<Int?>)
+                    // The 'currentDayInYear' StateFlow above will also update based on this.
+                    day?.let { currentDayValue -> // Use currentDayValue to avoid confusion with the flow
+                        _currentScenario.value = scenarioRepository.getScenarioForDay(currentDayValue)
                         _currentQuestionIndex.value = 0
                         _selectedAnswerIndex.value = null
                         _displayMode.value = ScenarioDisplayMode.NARRATIVE
@@ -148,7 +165,8 @@ class ScenarioViewModel(
 
     private fun proceedToJournalEntry() {
         viewModelScope.launch {
-            _navigateToJournalEntry.emit(Unit)
+            val narrative = _currentScenario.value?.narrative ?: ""
+            _navigateToJournalEntry.emit(narrative)
         }
     }
 

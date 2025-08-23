@@ -11,5 +11,7 @@ data class JournalEntry(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val date: Long, // Timestamp
+    val dayNumber: Int, // The game day number (1-364) for this entry
     val description: String
 )
+

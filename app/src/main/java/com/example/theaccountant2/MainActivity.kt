@@ -1,105 +1,95 @@
 package com.example.theaccountant2
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Modifier
-import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.example.theaccountant2.ui.navigation.Screen
-// Import new screens
-import com.example.theaccountant2.ui.screen.BalanceSheetScreen
-import com.example.theaccountant2.ui.screen.IncomeStatementScreen
-import com.example.theaccountant2.ui.screen.JournalEntryScreen
-import com.example.theaccountant2.ui.screen.ScenarioScreen
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxSize // Keep if used by MainAppScaffold or its children
+import androidx.compose.material3.MaterialTheme // Keep
+import androidx.compose.material3.Surface // Keep
+// Remove Text, Composable, Modifier, Preview for Greeting if not used directly here
+// import androidx.compose.material3.Text
+// import androidx.compose.runtime.Composable
+// import androidx.compose.ui.Modifier
+// import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.content.ContextCompat
+// import com.example.theaccountant2.ui.navigation.AppNavigation // This will now be called by MainAppScaffold
+import com.example.theaccountant2.ui.navigation.MainAppScaffold // **** CHANGED IMPORT ****
 import com.example.theaccountant2.ui.theme.TheAccountant2Theme
-// Import new ViewModel
-import com.example.theaccountant2.ui.viewmodel.FinancialStatementViewModel
-import com.example.theaccountant2.ui.viewmodel.JournalEntryViewModel
-import com.example.theaccountant2.ui.viewmodel.ScenarioViewModel
-import com.example.theaccountant2.ui.viewmodel.ViewModelFactory
-import kotlinx.coroutines.flow.collectLatest
+import com.example.theaccountant2.util.AlarmScheduler
+import com.example.theaccountant2.util.NotificationUtils
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
 
-        val accountantApp = application as AccountantApp
-        val viewModelFactory = ViewModelFactory(
-            appProgressRepository = accountantApp.appProgressRepository,
-            scenarioRepository = accountantApp.scenarioRepository,
-            accountDao = accountantApp.database.accountDao(),
-            journalEntryDao = accountantApp.database.journalEntryDao(),
-            transactionDao = accountantApp.database.transactionDao()
-        )
+        requestPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                // Permission is granted.
+            } else {
+                // Handle permission denial.
+            }
+        }
+
+        NotificationUtils.createNotificationChannel(this)
+        AlarmScheduler.scheduleDailyAlarm(this)
+        askForNotificationPermission()
 
         setContent {
             TheAccountant2Theme {
-                val navController = rememberNavController()
-                val scenarioViewModel = ViewModelProvider(this, viewModelFactory)[ScenarioViewModel::class.java]
-                val financialStatementViewModel = ViewModelProvider(this, viewModelFactory)[FinancialStatementViewModel::class.java]
+                Surface( // Surface can remain if it\'s part of your overall theme/background
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    MainAppScaffold() // **** USE MainAppScaffold HERE ****
+                }
+            }
+        }
+    }
 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = Screen.Scenario.route,
-                        modifier = Modifier.padding(innerPadding)
-                    ) {
-                        composable(Screen.Scenario.route) {
-                            LaunchedEffect(Unit) {
-                                scenarioViewModel.navigateToJournalEntry.collectLatest {
-                                    navController.navigate(Screen.JournalEntry.route)
-                                }
-                            }
-                            // Added LaunchedEffects for navigating to financial statements
-                            LaunchedEffect(Unit) {
-                                scenarioViewModel.navigateToIncomeStatement.collectLatest {
-                                    navController.navigate(Screen.IncomeStatement.route)
-                                }
-                            }
-                            LaunchedEffect(Unit) {
-                                scenarioViewModel.navigateToBalanceSheet.collectLatest {
-                                    navController.navigate(Screen.BalanceSheet.route)
-                                }
-                            }
-
-                            ScenarioScreen(
-                                scenarioViewModel = scenarioViewModel
-                            )
-                        }
-                        composable(Screen.JournalEntry.route) {
-                            val journalEntryViewModel = ViewModelProvider(
-                                owner = it,
-                                factory = viewModelFactory
-                            )[JournalEntryViewModel::class.java]
-
-                            JournalEntryScreen(
-                                viewModel = journalEntryViewModel
-                            )
-
-                            LaunchedEffect(Unit) {
-                                journalEntryViewModel.navigateBackToScenario.collectLatest {
-                                    navController.popBackStack()
-                                }
-                            }
-                        }
-                        composable(Screen.IncomeStatement.route) {
-                            IncomeStatementScreen(viewModel = financialStatementViewModel)
-                        }
-                        composable(Screen.BalanceSheet.route) {
-                            BalanceSheetScreen(viewModel = financialStatementViewModel)
-                        }
-                    }
+    private fun askForNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    // Permission is already granted
+                }
+                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                else -> {
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             }
         }
     }
 }
+
+// The Greeting composable and its Preview can be removed from MainActivity if no longer needed here,
+// or if they were just for testing.
+// @Composable
+// fun Greeting(name: String, modifier: Modifier = Modifier) {
+// Text(
+// text = "Hello $name!",
+// modifier = modifier
+// )
+// }
+//
+// @Preview(showBackground = true)
+// @Composable
+// fun GreetingPreview() {
+// TheAccountant2Theme {
+// Greeting("Android")
+// }
+// }

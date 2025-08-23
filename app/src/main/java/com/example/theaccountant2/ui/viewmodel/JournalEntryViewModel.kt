@@ -7,7 +7,6 @@ import com.example.theaccountant2.data.db.JournalEntryDao
 import com.example.theaccountant2.data.db.TransactionDao
 import com.example.theaccountant2.data.model.Account
 import com.example.theaccountant2.data.model.JournalEntry
-// Import NormalBalance
 import com.example.theaccountant2.data.model.NormalBalance
 import com.example.theaccountant2.data.model.Transaction
 import com.example.theaccountant2.data.repository.AppProgressRepository
@@ -48,7 +47,6 @@ class JournalEntryViewModel(
     val allAccounts: StateFlow<List<Account>> = accountDao.getAllAccounts()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // Navigation event
     private val _navigateBackToScenario = MutableSharedFlow<Unit>()
     val navigateBackToScenario: SharedFlow<Unit> = _navigateBackToScenario.asSharedFlow()
 
@@ -102,14 +100,24 @@ class JournalEntryViewModel(
                 val entryDescription = _description.value
                 val selectedDebitAccount = _debitAccount.value!!
                 val selectedCreditAccount = _creditAccount.value!!
-                // Ensure amounts are parsed as Long (cents)
                 val amount = _debitAmountString.value.toDoubleOrNull()?.times(100)?.toLong()
                     ?: run {
                         onError("Invalid debit amount format.")
                         return@launch
                     }
 
-                val journalEntry = JournalEntry(date = Date().time, description = entryDescription)
+                // Get the current day for this journal entry
+                val dayForEntry = appProgressRepository.currentDay.first()
+                if (dayForEntry == null) {
+                    onError("Critical error: Current day is not set. Cannot post journal entry.")
+                    return@launch
+                }
+
+                val journalEntry = JournalEntry(
+                    date = Date().time,
+                    dayNumber = dayForEntry, // Assign the fetched day number
+                    description = entryDescription
+                )
                 val entryId = journalEntryDao.insertJournalEntry(journalEntry)
 
                 val debitTransaction = Transaction(
@@ -126,32 +134,25 @@ class JournalEntryViewModel(
                 )
                 transactionDao.insertAllTransactions(listOf(debitTransaction, creditTransaction))
 
-                // Corrected debit balance update
                 val newDebitBalance = if (selectedDebitAccount.normalBalance == NormalBalance.DEBIT) {
                     selectedDebitAccount.balance + amount
-                } else { // Account has a CREDIT normal balance
+                } else {
                     selectedDebitAccount.balance - amount
                 }
                 accountDao.updateBalance(selectedDebitAccount.id, newDebitBalance)
 
-                // Corrected credit balance update
                 val newCreditBalance = if (selectedCreditAccount.normalBalance == NormalBalance.CREDIT) {
                     selectedCreditAccount.balance + amount
-                } else { // Account has a DEBIT normal balance
+                } else {
                     selectedCreditAccount.balance - amount
                 }
                 accountDao.updateBalance(selectedCreditAccount.id, newCreditBalance)
 
-                // Advance day
-                val currentDay = appProgressRepository.currentDay.first() // Get current day
-                currentDay?.let { day -> // It's a Flow<Int?>, so handle nullability
-                    appProgressRepository.updateCurrentDay(day + 1)
-                }
+                // Advance day using the day number that was used for this entry
+                appProgressRepository.updateCurrentDay(dayForEntry + 1)
 
                 clearInputFields()
-                onSuccess() // Call original onSuccess for UI feedback like Toast
-
-                // Emit navigation event after success and day advancement
+                onSuccess()
                 _navigateBackToScenario.emit(Unit)
 
             } catch (e: Exception) {

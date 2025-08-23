@@ -2,16 +2,19 @@ package com.example.theaccountant2.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.theaccountant2.data.model.Account
+import androidx.compose.ui.unit.sp
 import com.example.theaccountant2.ui.viewmodel.JournalEntryViewModel
 import java.text.NumberFormat
 import java.util.Locale
@@ -20,7 +23,8 @@ import java.util.Locale
 @Composable
 fun JournalEntryScreen(
     modifier: Modifier = Modifier,
-    viewModel: JournalEntryViewModel
+    viewModel: JournalEntryViewModel,
+    narrative: String // Added narrative parameter
 ) {
     val context = LocalContext.current
 
@@ -42,15 +46,36 @@ fun JournalEntryScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        // horizontalAlignment = Alignment.CenterHorizontally, // Adjusted for full-width elements
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("Record Journal Entry", style = MaterialTheme.typography.headlineSmall)
+        // Display the narrative at the top
+        Text(
+            text = "Scenario Context:",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 50.dp, max = 120.dp) // Allow scroll within this height
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 12.dp)
+        ) {
+            Text(
+                text = narrative.replace("+", " "),
+                style = MaterialTheme.typography.bodyMedium,
+                lineHeight = 20.sp
+            )
+        }
+
+        Text("Record Journal Entry", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.align(Alignment.CenterHorizontally))
 
         OutlinedTextField(
             value = description,
             onValueChange = { viewModel.onDescriptionChange(it) },
-            label = { Text("Description") },
+            label = { Text("Description (Optional - derived from Scenario)") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
@@ -144,9 +169,9 @@ fun JournalEntryScreen(
         val debitTotal = debitAmountString.toDoubleOrNull() ?: 0.0
         Text(
             "Debits: ${currencyFormat.format(debitTotal)} | Credits: ${currencyFormat.format(debitTotal)}",
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
         )
-
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -155,7 +180,7 @@ fun JournalEntryScreen(
                 viewModel.postJournalEntry(
                     onSuccess = {
                         Toast.makeText(context, "Journal entry posted!", Toast.LENGTH_SHORT).show()
-                        // Navigation back or to next step will be handled later
+                        // Navigation back or to next step will be handled by the navigateBackToScenario Flow in ViewModel
                     },
                     onError = { errorMessage ->
                         Toast.makeText(context, "Error: $errorMessage", Toast.LENGTH_LONG).show()
