@@ -15,6 +15,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController // IMPORT ADDED
 import com.example.theaccountant2.ui.viewmodel.JournalEntryViewModel
 import java.text.NumberFormat
 import java.util.Locale
@@ -24,7 +25,8 @@ import java.util.Locale
 fun JournalEntryScreen(
     modifier: Modifier = Modifier,
     viewModel: JournalEntryViewModel,
-    narrative: String // Added narrative parameter
+    narrative: String, // Existing parameter
+    navController: NavHostController // PARAMETER ADDED
 ) {
     val context = LocalContext.current
 

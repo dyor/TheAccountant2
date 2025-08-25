@@ -11,10 +11,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize // Keep if used by MainAppScaffold or its children
 import androidx.compose.material3.MaterialTheme // Keep
 import androidx.compose.material3.Surface // Keep
-// Remove Text, Composable, Modifier, Preview for Greeting if not used directly here
+import androidx.compose.ui.Modifier // **** UNCOMMENTED THIS LINE ****
+// Remove Text, Composable, Preview for Greeting if not used directly here
 // import androidx.compose.material3.Text
 // import androidx.compose.runtime.Composable
-// import androidx.compose.ui.Modifier
 // import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 // import com.example.theaccountant2.ui.navigation.AppNavigation // This will now be called by MainAppScaffold
@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             TheAccountant2Theme {
                 Surface( // Surface can remain if it\'s part of your overall theme/background
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(), // This line needs the Modifier import
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainAppScaffold() // **** USE MainAppScaffold HERE ****

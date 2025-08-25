@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController // IMPORT ADDED
 import com.example.theaccountant2.data.model.Account
 import com.example.theaccountant2.ui.viewmodel.FinancialStatementViewModel
 //import com.example.theaccountant2.ui.viewmodel.IncomeStatementData
@@ -27,7 +28,8 @@ import com.example.theaccountant2.ui.common.AccountRow // Added import for share
 @Composable
 fun IncomeStatementScreen(
     modifier: Modifier = Modifier,
-    viewModel: FinancialStatementViewModel
+    viewModel: FinancialStatementViewModel,
+    navController: NavHostController // PARAMETER ADDED
 ) {
     val incomeStatementData by viewModel.incomeStatementData.collectAsState()
 

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController // IMPORT ADDED
 import com.example.theaccountant2.data.model.ScenarioQuestion
 import com.example.theaccountant2.ui.viewmodel.ScenarioDisplayMode
 import com.example.theaccountant2.ui.viewmodel.ScenarioViewModel
@@ -30,7 +31,8 @@ import com.example.theaccountant2.ui.viewmodel.FinancialStatementViewModel
 fun ScenarioScreen(
     modifier: Modifier = Modifier,
     scenarioViewModel: ScenarioViewModel,
-    financialStatementViewModel: FinancialStatementViewModel
+    financialStatementViewModel: FinancialStatementViewModel,
+    navController: NavHostController // PARAMETER ADDED
 ) {
     // Scenario States
     val scenario by scenarioViewModel.currentScenario.collectAsState()

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 // import androidx.compose.ui.graphics.Color // Not used, can be removed
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController // IMPORT ADDED
 import com.example.theaccountant2.data.model.Account
 import com.example.theaccountant2.data.model.BalanceSheetData
 import com.example.theaccountant2.ui.viewmodel.FinancialStatementViewModel
@@ -25,7 +26,8 @@ import com.example.theaccountant2.ui.common.AccountRow // Added import for share
 @Composable
 fun BalanceSheetScreen(
     modifier: Modifier = Modifier,
-    viewModel: FinancialStatementViewModel
+    viewModel: FinancialStatementViewModel,
+    navController: NavHostController // PARAMETER ADDED
 ) {
     val balanceSheetData by viewModel.balanceSheetData.collectAsState()
 
@@ -124,7 +126,7 @@ fun EquitySectionCard(balanceSheetData: BalanceSheetData) {
 
             if (balanceSheetData.equityDetail.drawingAccounts.isNotEmpty()) {
                  AccountRow(
-                    accountName = "Owner's Drawings",
+                    accountName = "Owner\'s Drawings",
                     balance = balanceSheetData.equityDetail.totalDrawings,
                     isSubtraction = true
                 )

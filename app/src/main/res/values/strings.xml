@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">TheAccountant2</string>
+    <string name="bottom_nav_play">Play</string>
+    <string name="bottom_nav_settings">Settings</string>
+    <string name="screen_title_settings">Settings</string>
+    <string name="setting_restart_game">Restart Game</string>
+    <string name="setting_enable_8am_notification">Enable 8 AM Notification</string>
+    <string name="setting_test_notification_now">Test Notification Now</string>
+    <string name="setting_restart_game_description">This will delete all your progress.</string>
+    <string name="notification_test_title">Test Notification</string>
+    <string name="notification_test_text">This is a test from The Accountant!</string>
 </resources>
